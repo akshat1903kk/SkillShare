@@ -1,0 +1,77 @@
+body {
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f0f0f0;
+    margin: 0;
+}
+
+main {
+    width: 400px;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.container {
+    text-align: center;
+}
+
+#form-title {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.form-container {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.form-container.hidden {
+    opacity: 0;
+    transform: translateY(-20px);
+    display: none; /* Important for accessibility */
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"] {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#switch-btn {
+    margin-top: 15px;
+    background-color: #6c757d; /* Gray button */
+}
+
+#switch-btn:hover {
+    background-color: #5a6268; /* Darker gray on hover */
+}
+
+.error-message {
+    color: red;
+    margin-top: 10px;
+}

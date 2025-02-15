@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+
+    header {
+      background-color: #007bff;
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      cursor: pointer;
+      background-color: #0056b3;
+      color: white;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: #003d82;
+    }
+
+    input {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      width: 200px;
+    }
+
+    #jobList {
+      margin: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .job-card {
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Job Dashboard</h1>
+    <div class="actions">
+      <button id="createJobBtn">Create Job</button>
+      <button id="yourApplicationsBtn">Your Applications</button>
+      <input type="text" id="searchBar" placeholder="Search by location..." />
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="jobList"></div>
+  </main>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const API_URL = "http://localhost:8000";
+      const jobList = document.getElementById("jobList");
+      const searchBar = document.getElementById("searchBar");
+      const createJobBtn = document.getElementById("createJobBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const yourApplicationsBtn = document.getElementById("yourApplicationsBtn");
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login.html";
+      }
+
+      async function fetchJobs(location = "") {
+        let url = `${API_URL}/jobs/`;
+        if (location) {
+          url = `${API_URL}/jobs/apply/${location}`;
+        }
+        try {
+          const response = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (response.status === 401) {
+            alert("Session expired. Please log in again.");
+            logout();
+          }
+          const jobs = await response.json();
+          displayJobs(jobs);
+        } catch (error) {
+          console.error("Error fetching jobs:", error);
+        }
+      }
+
+      function displayJobs(jobs) {
+        jobList.innerHTML = "";
+        if (jobs.length === 0) {
+          jobList.innerHTML = "<p>No jobs found.</p>";
+          return;
+        }
+        jobs.forEach(job => {
+          const jobCard = document.createElement("div");
+          jobCard.classList.add("job-card");
+          jobCard.innerHTML = `
+            <h3>${job.title}</h3>
+            <p>${job.description}</p>
+            <p><strong>Location:</strong> ${job.location}</p>
+            <button class="applyBtn" data-id="${job.id}">Apply</button>
+          `;
+          jobList.appendChild(jobCard);
+        });
+        document.querySelectorAll(".applyBtn").forEach(button => {
+          button.addEventListener("click", applyForJob);
+        });
+      }
+
+      async function applyForJob(event) {
+        const jobId = event.target.dataset.id;
+        console.log("Attempting to apply for job ID:", jobId);
+        try {
+          const response = await fetch(`${API_URL}/jobs/apply/${jobId}`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ applied_at: new Date().toISOString() })
+          });
+          const result = await response.json();
+          if (!response.ok) {
+            console.error("Error applying for job:", result);
+            alert(result.detail || "Failed to apply for job.");
+            return;
+          }
+          alert(result.message);
+          fetchJobs();
+        } catch (error) {
+          console.error("Error applying for job:", error);
+        }
+      }
+
+      searchBar.addEventListener("input", () => {
+        const query = searchBar.value.trim();
+        fetchJobs(query);
+      });
+
+      function logout() {
+        localStorage.removeItem("token");
+        window.location.href = "/";
+      }
+      logoutBtn.addEventListener("click", logout);
+
+      createJobBtn.addEventListener("click", async () => {
+        const title = prompt("Enter job title:");
+        const description = prompt("Enter job description:");
+        const location = prompt("Enter job location:");
+        const openings = prompt("Enter number of openings:");
+        if (!title || !description || !location || !openings) {
+          alert("All fields are required.");
+          return;
+        }
+        try {
+          const response = await fetch(`${API_URL}/jobs/`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              title,
+              description,
+              location,
+              openings: parseInt(openings)
+            })
+          });
+          const result = await response.json();
+          alert(result.message);
+          fetchJobs();
+        } catch (error) {
+          console.error("Error creating job:", error);
+        }
+      });
+
+      yourApplicationsBtn.addEventListener("click", async () => {
+        try {
+          const response = await fetch(`${API_URL}/jobs/applications`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!response.ok) {
+            alert("Failed to fetch applications.");
+            return;
+          }
+          const applications = await response.json();
+          displayApplications(applications);
+        } catch (error) {
+          console.error("Error fetching applications:", error);
+        }
+      });
+
+      function displayApplications(applications) {
+        jobList.innerHTML = "<h2>Your Applications</h2>";
+        if (applications.length === 0) {
+          jobList.innerHTML += "<p>No applications found.</p>";
+          return;
+        }
+        applications.forEach(app => {
+          const appCard = document.createElement("div");
+          appCard.classList.add("job-card");
+          appCard.innerHTML = `
+            <h3>${app.title}</h3>
+            <p>${app.description}</p>
+            <p><strong>Location:</strong> ${app.location}</p>
+            <p><strong>Applied at:</strong> ${new Date(app.applied_at).toLocaleString()}</p>
+          `;
+          jobList.appendChild(appCard);
+        });
+      }
+
+      fetchJobs();
+    });
+  </script>
+</body>
+</html>
